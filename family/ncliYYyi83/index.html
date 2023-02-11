@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Family</title>
+  
+  <link rel="stylesheet" href="../jscss/materialize.min.css">
+  <script src="../jscss/materialize.min.js"></script>
+  <script src="../jscss/d3.v6.js"></script>
+  <script src="../jscss/aes.js"></script>
+  <link rel="stylesheet" href="../jscss/main.css">
+  
+
+  <style>
+    #FamilyChart {
+      /*height: 700px;
+      max-height: 90vh;
+      width:100%;*/
+	  height: 100vh;
+    overflow: hidden;
+    }
+    textarea {
+      height: 200px;
+      width:100%;
+    }
+    .p5 {padding: 5px}
+    code {
+      display: block;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 10px;
+    }
+    /*@media only screen and (max-width: 600px) {
+      #FamilyChart {
+        height: 60vh;
+        min-height: 300px;
+      }
+      textarea {
+        height: 30vh;
+        min-height: 200px;
+      }
+    }*/
+	.col.s12.m3{display:none !important;}
+	.col.m12{display:none !important;}
+	.col.s12.m9{width: 100vw;padding:0;}
+	.row{margin-bottom: 0px;}
+	.row a{margin-left: 10px;}
+	
+	.new-class{width:50px;height:35px;margin-top:23px;overflow:hidden;}
+  </style>
+
+</head>
+<body>
+<div id="control" class="mya row new-class" style="position:fixed;z-index:1;">
+	<a class="waves-effect waves-light btn-small myc" style="cursor:unset;">+</a>
+	<div class="input-field inline">
+	
+	 <input id="last_name" type="text" class="active" style="color:white;">
+			<label for="last_name">Пароль</label>
+	 </div>
+	<a class="waves-effect waves-light btn-small load-data">Загрузить</a>
+	<a class="waves-effect waves-light btn-small save-data">Сохранить</a><a class="waves-effect waves-light btn-small send-data">Отправить</a>
+	<span class="lastaction"></span>
+</div>
+
+<div style="/*max-width: 1100px; */margin: auto">
+  <div class="row">
+    <div class="col s12 m9">
+      <div id="FamilyChart" style="position: relative"></div>
+    </div>
+    <div class="col s12 m3">
+      <div id="edit_cont" class="card p5"></div>
+      <div id="display_cont" class="card p5"></div>
+    </div>
+    <div class="col m12">
+      <h5>Data</h5>
+      <div class="card p5">
+        <textarea id="textarea">test</textarea>
+        <button class="btn" id="update_btn">UPDATE CHART</button>
+      </div>
+      <h5>family-chart.css</h5>
+      <div class="card p5">
+        <pre><code id="family-chart-css"></code></pre>
+      </div>
+      <h5>Vanila</h5>
+      <div class="card p5">
+        <pre><code id="ReactiveVanila"></code></pre>
+      </div>
+      <h5>Vue</h5>
+      <div class="card p5">
+        <pre><code id="ReactiveVue"></code></pre>
+      </div>
+      <h5>React</h5>
+      <div class="card p5">
+        <pre><code id="ReactiveReact"></code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../jscss/ft.js"  type="module"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.body.appendChild(document.createElement("div"))
+    modal.setAttribute("id", "form_modal")
+    modal.setAttribute("class", "modal")
+    M.Modal.init(modal, {});
+  });
+  
+  const control = document.querySelector('.myc');
+  control.addEventListener('click', toggleClass);
+
+function toggleClass(){
+  const element = document.querySelector('.row.mya');
+  element.classList.toggle('new-class');
+  //element.scrollTop = 0;
+  //control.focus();
+}
+
+let uname = "gigi";
+let upd = document.getElementById('update_btn');
+let text = document.getElementById('textarea');
+let password = document.getElementById('last_name');
+
+
+function load_data()
+{
+	if (localStorage.getItem(uname) === null || localStorage.getItem(uname)=="")
+	{
+		localStorage.setItem(uname,origin_data());
+		
+		text.value = CryptoJS.AES.decrypt(origin_data(), password.value).toString(CryptoJS.enc.Utf8);
+	}
+	else
+	{
+		text.value = CryptoJS.AES.decrypt(localStorage.getItem(uname), password.value).toString(CryptoJS.enc.Utf8);
+	}
+upd.click();
+toggleClass();
+//document.querySelector('.lastaction').innerHTML="последнее действие: 'Загрузка'";
+}
+ 
+function save_data()
+{
+localStorage.setItem(uname,CryptoJS.AES.encrypt(text.value, password.value).toString());
+toggleClass();
+//document.querySelector('.lastaction').innerHTML="последнее действие: 'Сохранение'";
+}
+
+ 
+
+
+function send_data(){
+let enc_token='U2FsdGVkX1/vZ1Jjbum7RvqIIi7PoVBWoCRrgCpysN0hH0AClp++QbXz4L8HceSAyRAp+yyzK4dpMrPGV5JcTA==';
+let enc_chat='U2FsdGVkX1/bS8S1tLcwAhGlgLXtGWhoBFiZz0FjH+s=';
+var enc_data = localStorage.getItem(uname);
+
+var blob = new Blob([enc_data], { type: 'plain/text' });
+
+var formData = new FormData();
+formData.append('chat_id', CryptoJS.AES.decrypt(enc_chat, password.value).toString(CryptoJS.enc.Utf8));
+formData.append('document', blob, uname+'.txt');
+
+var request = new XMLHttpRequest();
+request.open('POST', `https://api.telegram.org/bot${CryptoJS.AES.decrypt(enc_token, password.value).toString(CryptoJS.enc.Utf8)}/sendDocument`);
+request.send(formData);
+toggleClass();
+}
+
+
+
+const loaddata = document.querySelector('.load-data');
+  loaddata.addEventListener('click', load_data);
+ 
+const savedata = document.querySelector('.save-data');
+  savedata.addEventListener('click', save_data);
+
+const senddata = document.querySelector('.send-data');
+  senddata.addEventListener('click', send_data);
+
+
+function origin_data(){
+	return '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' 
+}  
+  
+  
+</script>
+</body>
+</html>
